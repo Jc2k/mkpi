@@ -67,6 +67,17 @@ def main():
         print "You need to run this script as root"
         sys.exit(1)
 
+    def is_on_path(binary):
+        for d in os.environ.get("PATH", "").split(":"):
+            if os.path.exists(os.path.join(d, binary)):
+                return True
+        return False
+
+    for binary in ("kpartx", "mkfs.vfat", "mkfs.ext4", "losetup"):
+        if not is_on_path(binary):
+            print "Could not find %r on $PATH. Aborting." % binary
+            sys.exit(1)
+
     chroot_path = os.path.join(os.getcwd(), "build-env")
     image_path = os.path.join(os.getcwd(), "raspbian_XXXX.img")
 
