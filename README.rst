@@ -12,7 +12,7 @@ Usage
 
 You need some dependencies first::
 
-    sudo apt-get install binfmt-support qemu-user-static debootstrap kpartx
+    sudo apt-get install binfmt-support qemu-user-static debootstrap kpartx dosfstools
 
 You can install ``mkpi`` and its dependencies with ``pip``::
 
