@@ -1,0 +1,4 @@
+language: python
+before_install: sudo apt-get install qemu-user-static debootstrap kpartx dosfstools
+install: pip install -e .
+script: sudo mkpi
