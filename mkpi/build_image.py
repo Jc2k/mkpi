@@ -63,6 +63,22 @@ class Mount(object):
             print "UNMOUNT FAILED"
 
 
+class Loopback(object):
+
+    def __init__(self, image_path):
+        self.image_path = image_path
+
+    def __enter__(self):
+        print "> Setting up loopback device"
+        self.lo = subprocess.check_output(["losetup", "-f", "--show", self.image_path]).strip()
+        print ".... device=%s" % self.lo
+        return self.lo
+
+    def __exit__(self, *exc):
+        print "> Closing loopback device"
+        subprocess.check_call(["losetup", "-d", self.lo])
+
+
 def main():
     if os.getuid() != 0:
         print "You need to run this script as root"
@@ -89,16 +105,10 @@ def main():
         print "> Creating empty image file"
         subprocess.check_call(["dd", "if=/dev/zero", "of=%s" % image_path, "bs=1MB", "seek=3800", "count=1"])
 
-    print "> Setting up loopback device"
-    loopback_device = subprocess.check_output(["losetup", "-f", "--show", image_path]).strip()
-    print ".... device=%s" % loopback_device
-
-    print "> Partitioning image"
-    p = subprocess.Popen(["fdisk", loopback_device], stdin=subprocess.PIPE)
-    p.communicate("n\np\n1\n\n+64MB\nt\nc\nn\np\n2\n\n\nw\n")
-
-    print "> Closing loopback device"
-    subprocess.check_call(["losetup", "-d", loopback_device])
+    with Loopback(image_path) as loopback_device:
+        print "> Partitioning image"
+        p = subprocess.Popen(["fdisk", loopback_device], stdin=subprocess.PIPE)
+        p.communicate("n\np\n1\n\n+64MB\nt\nc\nn\np\n2\n\n\nw\n")
 
     with contextlib2.ExitStack() as stack:
         p0, p1 = stack.enter_context(MappedPartitions(image_path))
