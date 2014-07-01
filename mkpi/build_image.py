@@ -150,4 +150,7 @@ def main():
         with open(os.path.join(chroot_path, "etc", "hostname"), "w") as fp:
             fp.write("raspberrypi")
 
+        print "> Cleaning up apt"
+        subprocess.check_call(["chroot", chroot_path, "apt-get", "clean"])
+
     print "> Done"
