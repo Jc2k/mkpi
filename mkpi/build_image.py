@@ -119,8 +119,8 @@ def main():
         print "> Creating / as ext4"
         subprocess.check_call(["mkfs.ext4", p1])
 
-        stack.enter_context(Mount(p1, chroot_path))
-        stack.enter_context(Mount(p0, os.path.join(chroot_path, "boot")))
+        stack.enter_context(Mount("-o", "discard", p1, chroot_path))
+        stack.enter_context(Mount("-o", "discard", p0, os.path.join(chroot_path, "boot")))
         stack.enter_context(Mount("-t", "proc", "none", os.path.join(chroot_path, "proc")))
         stack.enter_context(Mount("-t", "sysfs", "none", os.path.join(chroot_path, "sysfs")))
         stack.enter_context(Mount("-o", "bind", "/dev", os.path.join(chroot_path, "dev")))
