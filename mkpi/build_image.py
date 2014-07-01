@@ -6,6 +6,7 @@ import subprocess
 import time
 import contextlib2
 import pkgutil
+import ConfigParser
 
 
 CONFIG_FILES = [
@@ -78,6 +79,9 @@ def main():
             print "Could not find %r on $PATH. Aborting." % binary
             sys.exit(1)
 
+    cfg = ConfigParser.ConfigParser()
+    cfg.read([os.path.join(os.path.dirname(__file__), "defaults.cfg")])
+
     chroot_path = os.path.join(os.getcwd(), "build-env")
     image_path = os.path.join(os.getcwd(), "raspbian_XXXX.img")
 
@@ -88,17 +92,6 @@ def main():
     print "> Setting up loopback device"
     loopback_device = subprocess.check_output(["losetup", "-f", "--show", image_path]).strip()
     print ".... device=%s" % loopback_device
-
-    for i in range(12):
-        try:
-            subprocess.check_call(["losetup", loopback_device])
-        except:
-            time.sleep(5)
-            continue
-        break
-    else:
-        print "> Loopback not ready after 60s. Aborting."
-        return
 
     print "> Partitioning image"
     p = subprocess.Popen(["fdisk", loopback_device], stdin=subprocess.PIPE)
@@ -135,7 +128,7 @@ def main():
             "--components=main,contrib,non-free,firmware,rpi",
             "wheezy",
             chroot_path,
-            "http://archive.raspbian.org/raspbian",
+            cfg.get("debootstrap", "repository"),
             ])
 
         for conf in CONFIG_FILES:
