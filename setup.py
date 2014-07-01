@@ -9,8 +9,11 @@ setup(
     author="John Carr",
     author_email="john.carr@unrouted.co.uk",
     packages=find_packages(),
+    install_requires=[
+      'contextlib2',
+    ],
     entry_points = """
       [console_scripts]
-      mkpi = mkpi.__main__:main
+      mkpi = mkpi.build_image:main
     """
 )
