@@ -9,6 +9,14 @@ import pkgutil
 import ConfigParser
 
 
+BASE_PACKAGES = [
+    "raspbian-archive-keyring",
+    "raspberrypi-bootloader-nokernel",
+    "libraspberrypi-bin",
+    "fake-hwclock",
+]
+
+
 CONFIG_FILES = [
     "boot/cmdline.txt",
     "etc/fstab",
@@ -129,12 +137,22 @@ def main():
         # Could bind mount in an assets directory...
         # stack.enter_context(Mount("-o", "bind", "from", "to"))
 
+        packages = list(BASE_PACKAGES)
+        if cfg.has_option("debootstrap", "packages"):
+            packages.extend(cfg.get("debootstrap", "packages").split())
+
+        # Because of a bug in wheezy we need to install systemd manually
+        install_systemd = False
+        if "systemd-sysv" in packages:
+            install_systemd = True
+            packages.remove("systemd-sysv")
+
         print "> Bootstrapping Raspbian"
         subprocess.check_call([
             "qemu-debootstrap", "--verbose",
             "--keyring=%s" % os.path.join(os.path.dirname(__file__), "raspbian-archive-keyring.gpg"),
             "--arch", "armhf",
-            "--include=raspbian-archive-keyring,raspberrypi-bootloader-nokernel,libraspberrypi-bin",
+            "--include=%s" % ",".join(packages),
             "--components=main,contrib,non-free,firmware,rpi",
             "wheezy",
             chroot_path,
