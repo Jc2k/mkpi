@@ -1,6 +1,6 @@
 language: python
-before_install:
-  - sudo apt-get update -y
-  - sudo apt-get install -y qemu-user-static debootstrap kpartx dosfstools
+#before_install:
+#  - sudo apt-get update -y
+#  - sudo apt-get install -y qemu-user-static debootstrap kpartx dosfstools
 install: pip install -e .
-script: sudo /home/travis/virtualenv/python2.7.6/bin/mkpi
+script: true
