@@ -14,6 +14,12 @@ BASE_PACKAGES = [
     "raspberrypi-bootloader-nokernel",
     "libraspberrypi-bin",
     "fake-hwclock",
+    "openssh-server",
+    "ntp",
+    "less",
+    "vim-nox",
+    "locales",
+    "console-common"
 ]
 
 
@@ -41,8 +47,17 @@ class MappedPartitions(object):
         return p0, p1
 
     def __exit__(self, *exc):
+        print "> Flushing to disk"
+        subprocess.check_call(["sync"])
+
         print "> Closing partitions"
-        subprocess.check_call(["kpartx", "-dv", self.image_path])
+        for i in range(1):
+            try:
+                subprocess.check_call(["kpartx", "-dv", self.image_path])
+            except subprocess.CalledProcessError:
+                time.sleep(10)
+                continue
+            return
 
 
 class Mount(object):
@@ -58,6 +73,9 @@ class Mount(object):
         subprocess.check_call(["mount"] + list(self.args))
 
     def __exit__(self, *exc):
+        print "> Flushing to disk"
+        subprocess.check_call(["sync"])
+
         path = self.args[-1]
         print "> Unmounting %r" % path
         for i in range(5):
@@ -84,6 +102,7 @@ class Loopback(object):
 
     def __exit__(self, *exc):
         print "> Closing loopback device"
+        subprocess.check_call(["sync"])
         subprocess.check_call(["losetup", "-d", self.lo])
 
 
@@ -109,6 +128,9 @@ def main():
     chroot_path = os.path.join(os.getcwd(), "build-env")
     image_path = os.path.join(os.getcwd(), "raspbian_XXXX.img")
 
+    if os.path.exists(image_path):
+        os.unlink(image_path)
+
     if not os.path.exists(image_path):
         print "> Creating empty image file"
         subprocess.check_call(["dd", "if=/dev/zero", "of=%s" % image_path, "bs=1MB", "seek=3800", "count=1"])
@@ -129,8 +151,8 @@ def main():
 
         stack.enter_context(Mount("-o", "discard", p1, chroot_path))
         stack.enter_context(Mount("-o", "discard", p0, os.path.join(chroot_path, "boot")))
-        stack.enter_context(Mount("-t", "proc", "none", os.path.join(chroot_path, "proc")))
-        stack.enter_context(Mount("-t", "sysfs", "none", os.path.join(chroot_path, "sysfs")))
+        stack.enter_context(Mount("-o", "bind", "/proc", os.path.join(chroot_path, "proc")))
+        stack.enter_context(Mount("-o", "bind", "/sys", os.path.join(chroot_path, "sys")))
         stack.enter_context(Mount("-o", "bind", "/dev", os.path.join(chroot_path, "dev")))
         #stack.enter_context(Mount("-o", "bind", "/dev/pts", os.path.join(chroot_path, "dev/pts")))
 
@@ -170,5 +192,9 @@ def main():
 
         print "> Cleaning up apt"
         subprocess.check_call(["chroot", chroot_path, "apt-get", "clean"])
+
+        print "> Setting root password"
+        p = subprocess.Popen(["chroot", chroot_path, "chpasswd"], stdin=subprocess.PIPE)
+        p.communicate("root:raspberry")
 
     print "> Done"
